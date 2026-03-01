@@ -2,10 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 class WheelPainter extends CustomPainter {
-  WheelPainter({
-    required this.sections,
-    required this.rotationAngle,
-  });
+  WheelPainter({required this.sections, required this.rotationAngle});
 
   final List<String> sections;
   final double rotationAngle;
@@ -55,16 +52,17 @@ class WheelPainter extends CustomPainter {
 
     // Draw labels
     final fontSize = sections.length <= 6
-        ? 14.0
+        ? 28.0
         : sections.length <= 10
-            ? 12.0
-            : 10.0;
+        ? 26.0
+        : 24.0;
 
     for (var i = 0; i < sections.length; i++) {
       final midAngle = i * sectionAngle + sectionAngle / 2;
       final color = _palette[i % _palette.length];
-      final textColor =
-          color.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+      final textColor = color.computeLuminance() > 0.5
+          ? Colors.black
+          : Colors.white;
 
       canvas.save();
       canvas.rotate(midAngle);
