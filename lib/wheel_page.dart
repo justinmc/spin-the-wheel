@@ -16,23 +16,13 @@ class WheelPage extends StatefulWidget {
 
 class _WheelPageState extends State<WheelPage>
     with SingleTickerProviderStateMixin {
-  /*
-  List<String> _sections = [
+  static const _defaultSections = [
     'Pizza',
     'Tacos',
     'Sushi',
     'Burgers',
     'Pasta',
     'Salad',
-  ];
-  */
-  static const _defaultSections = [
-    'Graham',
-    'George',
-    'Dad',
-    'Mom',
-    'Laolao',
-    'Laoye',
   ];
   static const _prefsKey = 'wheel_sections';
   static const _dadModeKey = 'dad_mode';
