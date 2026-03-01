@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -42,12 +43,22 @@ class _WheelPageState extends State<WheelPage>
   Offset? _panCenter;
   double? _lastPanAngle;
 
+  // Ratchet sound
+  static const _playerPoolSize = 4;
+  final List<AudioPlayer> _clickPlayers = [];
+  int _nextPlayer = 0;
+  int _lastSectionIndex = -1;
+
   @override
   void initState() {
     super.initState();
+    for (var i = 0; i < _playerPoolSize; i++) {
+      _clickPlayers.add(AudioPlayer());
+    }
     _controller = AnimationController.unbounded(vsync: this);
     _controller.addListener(() {
       setState(() => _currentAngle = _controller.value);
+      _checkRatchet();
     });
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
@@ -73,7 +84,32 @@ class _WheelPageState extends State<WheelPage>
   @override
   void dispose() {
     _controller.dispose();
+    for (final player in _clickPlayers) {
+      player.dispose();
+    }
     super.dispose();
+  }
+
+  int _currentSectionIndex() {
+    final sectionAngle = 2 * pi / _sections.length;
+    final normalized =
+        ((-pi / 2 - _currentAngle) % (2 * pi) + 2 * pi) % (2 * pi);
+    return (normalized / sectionAngle).floor() % _sections.length;
+  }
+
+  void _checkRatchet() {
+    final index = _currentSectionIndex();
+    if (index != _lastSectionIndex) {
+      _lastSectionIndex = index;
+      _playClick();
+    }
+  }
+
+  void _playClick() {
+    final player = _clickPlayers[_nextPlayer];
+    _nextPlayer = (_nextPlayer + 1) % _playerPoolSize;
+    player.stop();
+    player.play(AssetSource('click.wav'));
   }
 
   double _angleTo(Offset position) {
@@ -103,6 +139,7 @@ class _WheelPageState extends State<WheelPage>
     setState(() {
       _currentAngle += delta;
     });
+    _checkRatchet();
     _lastPanAngle = angle;
   }
 
