@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'section_config_page.dart';
 import 'wheel_painter.dart';
 
@@ -13,6 +14,7 @@ class WheelPage extends StatefulWidget {
 
 class _WheelPageState extends State<WheelPage>
     with SingleTickerProviderStateMixin {
+  /*
   List<String> _sections = [
     'Pizza',
     'Tacos',
@@ -21,6 +23,18 @@ class _WheelPageState extends State<WheelPage>
     'Pasta',
     'Salad',
   ];
+  */
+  static const _defaultSections = [
+    'Graham',
+    'George',
+    'Dad',
+    'Mom',
+    'Laolao',
+    'Laoye',
+  ];
+  static const _prefsKey = 'wheel_sections';
+
+  List<String> _sections = List.from(_defaultSections);
 
   late AnimationController _controller;
   double _currentAngle = 0.0;
@@ -40,6 +54,20 @@ class _WheelPageState extends State<WheelPage>
         _showWinner();
       }
     });
+    _loadSections();
+  }
+
+  Future<void> _loadSections() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getStringList(_prefsKey);
+    if (saved != null && saved.length >= 2) {
+      setState(() => _sections = saved);
+    }
+  }
+
+  Future<void> _saveSections() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_prefsKey, _sections);
   }
 
   @override
@@ -86,11 +114,7 @@ class _WheelPageState extends State<WheelPage>
       return;
     }
 
-    final simulation = FrictionSimulation(
-      0.15,
-      _currentAngle,
-      angularVelocity,
-    );
+    final simulation = FrictionSimulation(0.15, _currentAngle, angularVelocity);
 
     _controller.animateWith(simulation);
   }
@@ -98,7 +122,8 @@ class _WheelPageState extends State<WheelPage>
   void _showWinner() {
     final sectionAngle = 2 * pi / _sections.length;
     // Pointer is at top center (-pi/2). Normalize to find which section is there.
-    final normalized = ((-pi / 2 - _currentAngle) % (2 * pi) + 2 * pi) % (2 * pi);
+    final normalized =
+        ((-pi / 2 - _currentAngle) % (2 * pi) + 2 * pi) % (2 * pi);
     final index = (normalized / sectionAngle).floor() % _sections.length;
 
     showDialog(
@@ -129,6 +154,7 @@ class _WheelPageState extends State<WheelPage>
     );
     if (result != null && mounted) {
       setState(() => _sections = result);
+      _saveSections();
     }
   }
 
