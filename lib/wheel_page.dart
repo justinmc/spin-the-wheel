@@ -5,6 +5,7 @@ import 'package:flutter/physics.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'section_config_page.dart';
 import 'wheel_painter.dart';
+import 'winner_overlay.dart';
 
 class WheelPage extends StatefulWidget {
   const WheelPage({super.key});
@@ -38,6 +39,7 @@ class _WheelPageState extends State<WheelPage>
 
   List<String> _sections = List.from(_defaultSections);
   bool _dadMode = false;
+  String? _winnerName;
 
   late AnimationController _controller;
   double _currentAngle = 0.0;
@@ -186,28 +188,10 @@ class _WheelPageState extends State<WheelPage>
 
   void _showWinner() {
     final sectionAngle = 2 * pi / _sections.length;
-    // Pointer is at top center (-pi/2). Normalize to find which section is there.
     final normalized =
         ((-pi / 2 - _currentAngle) % (2 * pi) + 2 * pi) % (2 * pi);
     final index = (normalized / sectionAngle).floor() % _sections.length;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Winner!'),
-        content: Text(
-          _sections[index],
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+    setState(() => _winnerName = _sections[index]);
   }
 
   Future<void> _openSettings() async {
@@ -230,61 +214,70 @@ class _WheelPageState extends State<WheelPage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: const Text('Spin the Wheel'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: _openSettings,
+    return Stack(
+      children: [
+        Scaffold(
+          appBar: AppBar(
+            backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+            title: const Text('Spin the Wheel'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: _openSettings,
+              ),
+            ],
           ),
-        ],
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final wheelSize =
-              min(constraints.maxWidth, constraints.maxHeight - 40) * 0.85;
-          return Center(
-            child: SizedBox(
-              width: wheelSize,
-              height: wheelSize + 30,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Wheel
-                  Positioned(
-                    top: 30,
-                    child: GestureDetector(
-                      onPanStart: _onPanStart,
-                      onPanUpdate: _onPanUpdate,
-                      onPanEnd: _onPanEnd,
-                      child: SizedBox(
-                        width: wheelSize,
-                        height: wheelSize,
-                        child: CustomPaint(
-                          painter: WheelPainter(
-                            sections: _sections,
-                            rotationAngle: _currentAngle,
+          body: LayoutBuilder(
+            builder: (context, constraints) {
+              final wheelSize =
+                  min(constraints.maxWidth, constraints.maxHeight - 40) * 0.85;
+              return Center(
+                child: SizedBox(
+                  width: wheelSize,
+                  height: wheelSize + 30,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Wheel
+                      Positioned(
+                        top: 30,
+                        child: GestureDetector(
+                          onPanStart: _onPanStart,
+                          onPanUpdate: _onPanUpdate,
+                          onPanEnd: _onPanEnd,
+                          child: SizedBox(
+                            width: wheelSize,
+                            height: wheelSize,
+                            child: CustomPaint(
+                              painter: WheelPainter(
+                                sections: _sections,
+                                rotationAngle: _currentAngle,
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                      // Pointer arrow at top center
+                      Positioned(
+                        top: 0,
+                        child: CustomPaint(
+                          size: const Size(30, 30),
+                          painter: _PointerPainter(),
+                        ),
+                      ),
+                    ],
                   ),
-                  // Pointer arrow at top center
-                  Positioned(
-                    top: 0,
-                    child: CustomPaint(
-                      size: const Size(30, 30),
-                      painter: _PointerPainter(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+                ),
+              );
+            },
+          ),
+        ),
+        if (_winnerName != null)
+          WinnerOverlay(
+            name: _winnerName!,
+            onDismiss: () => setState(() => _winnerName = null),
+          ),
+      ],
     );
   }
 }
