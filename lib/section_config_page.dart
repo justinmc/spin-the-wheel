@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 
 class SectionConfigPage extends StatefulWidget {
-  const SectionConfigPage({super.key, required this.sections});
+  const SectionConfigPage({
+    super.key,
+    required this.sections,
+    required this.dadMode,
+  });
 
   final List<String> sections;
+  final bool dadMode;
 
   @override
   State<SectionConfigPage> createState() => _SectionConfigPageState();
@@ -11,6 +16,7 @@ class SectionConfigPage extends StatefulWidget {
 
 class _SectionConfigPageState extends State<SectionConfigPage> {
   late List<String> _sections;
+  late bool _dadMode;
 
   static const List<Color> _palette = [
     Color(0xFFE53935),
@@ -31,6 +37,7 @@ class _SectionConfigPageState extends State<SectionConfigPage> {
   void initState() {
     super.initState();
     _sections = List.from(widget.sections);
+    _dadMode = widget.dadMode;
   }
 
   void _editSection(int index) {
@@ -120,28 +127,36 @@ class _SectionConfigPageState extends State<SectionConfigPage> {
           title: const Text('Configure Sections'),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.pop(context, _sections),
+            onPressed: () => Navigator.pop(context, (_sections, _dadMode)),
           ),
         ),
-        body: ListView.builder(
-          itemCount: _sections.length,
-          itemBuilder: (context, index) {
-            return ListTile(
-              leading: CircleAvatar(
-                backgroundColor: _palette[index % _palette.length],
-              ),
-              title: Text(_sections[index]),
-              trailing: _sections.length > 2
-                  ? IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () {
-                        setState(() => _sections.removeAt(index));
-                      },
-                    )
-                  : null,
-              onTap: () => _editSection(index),
-            );
-          },
+        body: ListView(
+          children: [
+            SwitchListTile(
+              title: const Text('Dad Mode'),
+              subtitle: const Text('Dad always wins the spin'),
+              value: _dadMode,
+              onChanged: (value) => setState(() => _dadMode = value),
+            ),
+            const Divider(),
+            ...List.generate(_sections.length, (index) {
+              return ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: _palette[index % _palette.length],
+                ),
+                title: Text(_sections[index]),
+                trailing: _sections.length > 2
+                    ? IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () {
+                          setState(() => _sections.removeAt(index));
+                        },
+                      )
+                    : null,
+                onTap: () => _editSection(index),
+              );
+            }),
+          ],
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: _addSection,

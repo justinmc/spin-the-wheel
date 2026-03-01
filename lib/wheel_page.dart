@@ -34,8 +34,10 @@ class _WheelPageState extends State<WheelPage>
     'Laoye',
   ];
   static const _prefsKey = 'wheel_sections';
+  static const _dadModeKey = 'dad_mode';
 
   List<String> _sections = List.from(_defaultSections);
+  bool _dadMode = false;
 
   late AnimationController _controller;
   double _currentAngle = 0.0;
@@ -62,6 +64,10 @@ class _WheelPageState extends State<WheelPage>
     });
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
+        if (_dadMode) {
+          final dadIndex = _findDadIndex();
+          if (dadIndex != -1) _snapToDad(dadIndex);
+        }
         _showWinner();
       }
     });
@@ -74,11 +80,33 @@ class _WheelPageState extends State<WheelPage>
     if (saved != null && saved.length >= 2) {
       setState(() => _sections = saved);
     }
+    final dadMode = prefs.getBool(_dadModeKey);
+    if (dadMode != null) {
+      setState(() => _dadMode = dadMode);
+    }
   }
 
   Future<void> _saveSections() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(_prefsKey, _sections);
+  }
+
+  Future<void> _saveDadMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_dadModeKey, _dadMode);
+  }
+
+  int _findDadIndex() {
+    const dadNames = {'Dad', 'dad', 'Daddy', 'daddy'};
+    return _sections.indexWhere((s) => dadNames.contains(s));
+  }
+
+  void _snapToDad(int dadIndex) {
+    final sectionAngle = 2 * pi / _sections.length;
+    final targetNormalized = dadIndex * sectionAngle + sectionAngle / 2;
+    final base = -pi / 2 - targetNormalized;
+    final k = ((_currentAngle - base) / (2 * pi)).round();
+    setState(() => _currentAngle = base + 2 * pi * k);
   }
 
   @override
@@ -183,15 +211,20 @@ class _WheelPageState extends State<WheelPage>
   }
 
   Future<void> _openSettings() async {
-    final result = await Navigator.push<List<String>>(
+    final result = await Navigator.push<(List<String>, bool)>(
       context,
       MaterialPageRoute(
-        builder: (context) => SectionConfigPage(sections: _sections),
+        builder: (context) =>
+            SectionConfigPage(sections: _sections, dadMode: _dadMode),
       ),
     );
     if (result != null && mounted) {
-      setState(() => _sections = result);
+      setState(() {
+        _sections = result.$1;
+        _dadMode = result.$2;
+      });
       _saveSections();
+      _saveDadMode();
     }
   }
 
